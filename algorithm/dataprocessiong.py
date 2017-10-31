@@ -14,7 +14,9 @@ def shop_priceshow(data):
 
     price = {}
     for cont in data:
-        tmp_price = int(data[cont]['price'])
+        # print(data[cont])
+        # input()
+        tmp_price = data[cont]['time_stamp']
         if tmp_price not in price:
             price[tmp_price] = 1
         else:
@@ -161,13 +163,15 @@ if __name__=="__main__":
     # ..\data\ABtest-evaluation_public.csv
     # ..\data\train-ccf_first_round_shop_info.csv
     print("111111111111111")
-    filenameshop = r"..\data\train-ccf_first_round_shop_info.csv"
-    datashop = readcsv(filenameshop)
+    filenameshop = r"..\data\train-ccf_first_round_shop_info.pkl"
+    # datashop = readcsv(filenameshop)
+    datashop = openpkl(filenameshop)
     print("222222222222222")
     shop_priceshow(datashop)
-    filenameuser = r"..\data\train-ccf_first_round_user_shop_behavior.csv"
-    datauser = readcsv(filenameuser)
-    print("3333333333333333")
-    usershow(datauser, datashop)
+    # filenameuser = r"..\data\train-ccf_first_round_user_shop_behavior.csv"
+    # # datauser = readcsv(filenameuser)
+    # datauser = openpkl(filenameuser)
+    # print("3333333333333333")
+    # usershow(datauser, datashop)
 
     pass
