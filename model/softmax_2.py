@@ -42,6 +42,8 @@ def sumdic(datatrain):
 
 def featrue_processing(data, dlen =None):
     result = {}
+    wordic = {}
+    shopdic = {}
     if dlen ==None:
         dlen = -1
     else:
@@ -49,6 +51,7 @@ def featrue_processing(data, dlen =None):
     limit = 0
     for cont in data:
         tmp_mallid = (data[cont].get("mall_id", False) and data[cont].get("mall_id") or data[cont].get("maill_id"))
+        # 样本用例
         if tmp_mallid not in result:
             result[tmp_mallid] = {}
             result[tmp_mallid][0] = {}
@@ -60,18 +63,49 @@ def featrue_processing(data, dlen =None):
         else:
             l = len(result[tmp_mallid].keys())
             result[tmp_mallid][l] = {}
-            result[tmp_mallid][0]['label'] = data[cont]['shop_id']
+            result[tmp_mallid][l]['label'] = data[cont]['shop_id']
             listwifi = data[cont]['wifi_infos'].split(';')
             for info in listwifi:
                 each = info.split('|')
-                result[tmp_mallid][0][each[0]] = float(each[1])
+                result[tmp_mallid][l][each[0]] = float(each[1])
 
+        # 每个mall的字典
+        if tmp_mallid not in wordic:
+            wordic[tmp_mallid] = {}
+            index = 0
+            listwifi = data[cont]['wifi_infos'].split(';')
+            for info in listwifi:
+                each = info.split('|')
+                if each[0] not in wordic[tmp_mallid].keys():
+                    wordic[tmp_mallid][each[0]] = index
+                    index += 1
+
+            wordic[tmp_mallid]["num"] = index
+        else:
+            index  = wordic[tmp_mallid].get("num", 0)
+            listwifi = data[cont]['wifi_infos'].split(';')
+            for info in listwifi:
+                each = info.split('|')
+                if each[0] not in wordic[tmp_mallid].keys():
+                    wordic[tmp_mallid][each[0]] = index
+                    index += 1
+            wordic[tmp_mallid]["num"] = index
+
+        # 每个mall的类别，店铺
+        if tmp_mallid not in shopdic:
+            shopdic[tmp_mallid] = {}
+            shopid = data[cont]['shop_id']
+            shopdic[tmp_mallid][shopid] = 1
+        else:
+            shopid = data[cont]['shop_id']
+            if shopid not in shopdic[tmp_mallid]:
+                shopdic[tmp_mallid][shopid] = 1
 
         limit += 1
         if dlen != -1 and limit > dlen:
             break
 
-    return result
+    return result,wordic,shopdic
 
 # 距离函数
 def discal(d1, d2):
@@ -110,10 +144,56 @@ def discos(d1, d2):
         return 0
     return sum/(pow(sum1,0.5)*pow(sum2,0.5))
 
-def softmax():
+
+def sigmod(sita, word, feature,feature_num):
+    x = 0
+    for f in feature:
+        if f == "label":
+            continue
+        x += sita[word[f]]*feature[f]
+
+    x += sita[feature_num]
+
+    return np.exp(x)
+
+
+def function_tidu(feature, word, shop, sita, feature_num):
+    m = len(feature.keys())
+    sum = [0 for i in xrange(feature_num)]
+    for i in xrange(m):
+        tmp_shopid = feature[m]['label']
+        fenzi = sigmod(sita[tmp_shopid], word[tmp_shopid],feature[tmp_shopid], feature_num)
+        fenmu = 0
+        # for
     pass
+
+
+def softmax(train_feature, wordic, shopdic):
+    # train_feature  主key是mallid，每个mallid下面不同的记录
+    # wordic 主key是mallid，每个mall下面，不同的特征，wifi信号
+    # shopdic 主key是mallid， 每个mall下面，商店
+    # 目标是对每个mall下，进行商店的多分类
+    for mallid in train_feature:
+        feature_num = len(wordic[mallid].keys())
+        sita = {}
+        # 初始化参数
+        for shopid in shopdic[mallid]:
+            sita[shopid] = [1 for i in xrange(feature_num+1)]
+        # 参数迭代
+        for i in xrange(100000):
+            sita_tmp = function_tidu(train_feature[mallid], wordic[mallid], shopdic[mallid],sita, feature_num)
+            print(sita, sita_tmp)
+            sita = sita_tmp
+
+        print train_feature[cont]
+        print wordic[cont]
+        print shopdic[cont]
+        input()
+
 # wifi = sumdic(datatrain)
-train_feature = featrue_processing(datatrain, len(datatrain.keys()))
+train_feature, wordic, shopdic = featrue_processing(datatrain, len(datatrain.keys()))
+# print train_feature
+softmax(train_feature,wordic,shopdic)
 # del datatrain
 # gc.collect()
 # test_feature = featrue_processing(data_test, len(data_test.keys())/40)
