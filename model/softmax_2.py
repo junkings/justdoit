@@ -158,14 +158,44 @@ def sigmod(sita, word, feature,feature_num):
 
 
 def function_tidu(feature, word, shop, sita, feature_num):
+    # m组数据
     m = len(feature.keys())
-    sum = [0 for i in xrange(feature_num)]
+    # n组类别
+    n = len(shop.keys())
+
+    sum_1 = {}
+    for shopid in shop:
+        sum_1[shopid] = [0 for i in xrange(feature_num + 1)]
+
+    # 计算梯度
     for i in xrange(m):
-        tmp_shopid = feature[m]['label']
-        fenzi = sigmod(sita[tmp_shopid], word[tmp_shopid],feature[tmp_shopid], feature_num)
+        tmp_shopid = feature[i]['label']
+        fenzi = sigmod(sita[tmp_shopid], word,feature[i], feature_num)
         fenmu = 0
-        # for
-    pass
+        for shopid in shop:
+            fenmu += sigmod(sita[shopid], word, feature[i], feature_num)
+
+        for f in feature[i]:
+            if f == "label":
+                continue
+
+            sum_1[tmp_shopid][word[f]] += (1-fenzi/fenmu) * feature[i][f]
+        sum_1[tmp_shopid][feature_num] += (1-fenzi/fenmu)
+
+    for i in sum_1:
+        print i
+        for j in xrange(feature_num+1):
+            print j
+            input()
+            sum_1[i][j] = - sum_1[i][j] / m
+
+    a = 1
+
+    for i in sita:
+        for j in xrange(feature_num+1):
+            sita[i][j] = sita[i][j] - a* sum_1[i][j]
+
+    return sita
 
 
 def softmax(train_feature, wordic, shopdic):
@@ -182,12 +212,19 @@ def softmax(train_feature, wordic, shopdic):
         # 参数迭代
         for i in xrange(100000):
             sita_tmp = function_tidu(train_feature[mallid], wordic[mallid], shopdic[mallid],sita, feature_num)
-            print(sita, sita_tmp)
             sita = sita_tmp
 
-        print train_feature[cont]
-        print wordic[cont]
-        print shopdic[cont]
+        # 最优化计算
+        test = {'b_15322575': -69.0, 'b_26536694': -70.0, 'b_40839621': -50.0, 'b_15340607': -73.0, 'b_49978742': -58.0, 'label': 's_2887645', 'b_38348513': -68.0, 'b_50347535': -74.0, 'b_26487153': -68.0, 'b_39847233': -65.0, 'b_39423573': -51.0}
+        result = {}
+        m = 0.0
+        label = ""
+        for shopid in shopdic[mallid]:
+            result[shopid] = sigmod(sita[shopid], wordic[mallid], test,feature_num)
+            if result[shopid] > m:
+                m = result[shopid]
+                label = shopid
+        print(m, label)
         input()
 
 # wifi = sumdic(datatrain)
