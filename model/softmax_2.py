@@ -146,14 +146,14 @@ def discos(d1, d2):
 
 
 def sigmod(sita, word, feature,feature_num):
-    x = 0
+    x = 0.0
     for f in feature:
         if f == "label":
             continue
         x += sita[word[f]]*feature[f]
 
     x += sita[feature_num]
-
+    # print x
     return np.exp(x)
 
 
@@ -165,16 +165,24 @@ def function_tidu(feature, word, shop, sita, feature_num):
 
     sum_1 = {}
     for shopid in shop:
-        sum_1[shopid] = [0 for i in xrange(feature_num + 1)]
+        sum_1[shopid] = [0.0 for i in xrange(feature_num + 1)]
 
     # 计算梯度
     for i in xrange(m):
         tmp_shopid = feature[i]['label']
         fenzi = sigmod(sita[tmp_shopid], word,feature[i], feature_num)
-        fenmu = 0
+        fenmu = 0.0
+        if tmp_shopid not in shop:
+            print tmp_shopid, shop
+            input()
         for shopid in shop:
             fenmu += sigmod(sita[shopid], word, feature[i], feature_num)
 
+        # print fenzi, fenmu, (1-fenzi/fenmu)
+        if fenmu != fenmu or abs(fenmu - 0.0) < 0.0000000000000001:
+            fenzi = 0.0
+            fenmu = 1.0
+        # input()
         for f in feature[i]:
             if f == "label":
                 continue
@@ -183,10 +191,7 @@ def function_tidu(feature, word, shop, sita, feature_num):
         sum_1[tmp_shopid][feature_num] += (1-fenzi/fenmu)
 
     for i in sum_1:
-        print i
         for j in xrange(feature_num+1):
-            print j
-            input()
             sum_1[i][j] = - sum_1[i][j] / m
 
     a = 1
@@ -208,9 +213,9 @@ def softmax(train_feature, wordic, shopdic):
         sita = {}
         # 初始化参数
         for shopid in shopdic[mallid]:
-            sita[shopid] = [1 for i in xrange(feature_num+1)]
+            sita[shopid] = [0.00000001 for i in xrange(feature_num+1)]
         # 参数迭代
-        for i in xrange(100000):
+        for i in xrange(10000):
             sita_tmp = function_tidu(train_feature[mallid], wordic[mallid], shopdic[mallid],sita, feature_num)
             sita = sita_tmp
 
