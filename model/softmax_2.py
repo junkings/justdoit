@@ -154,10 +154,54 @@ def sigmod(sita, word, feature,feature_num):
 
     x += sita[feature_num]
     # print x
+    return x
     return np.exp(x)
 
+def getloss(feature, word, shop, sita, feature_num):
+    # m组数据
+    m = len(feature.keys())
+    # n组类别
+    n = len(shop.keys())
 
-def function_tidu(feature, word, shop, sita, feature_num):
+    sum_1 = 0.0
+
+    # 计算梯度
+    for i in xrange(m):
+        tmp_shopid = feature[i]['label']
+        # fenzi = sigmod(sita[tmp_shopid], word,feature[i], feature_num)
+        fenmu = 0.0
+        if tmp_shopid not in shop:
+            print tmp_shopid, shop
+            input()
+        # for shopid in shop:
+        #     fenmu += sigmod(sita[shopid], word, feature[i], feature_num)
+        W = {}
+        W_m = 0.0
+        for shopid in shop:
+            W[shopid] = sigmod(sita[shopid], word, feature[i], feature_num)
+            if W[shopid] > W_m:
+                W_m = W[shopid]
+        try:
+            fenzi = np.exp(W[tmp_shopid] - W_m)
+            for shopid in shop:
+                fenmu += np.exp(W[shopid] - W_m)
+        except RuntimeWarning:
+            print "1111111", W[tmp_shopid], W_m
+            input()
+        # print fenzi, fenmu, (1-fenzi/fenmu)
+        if fenmu != fenmu or abs(fenmu - 0.0) < 0.0000000000000001:
+            fenzi = 0.0
+            fenmu = 1.0
+        # input()
+        try:
+            sum_1 += np.log((fenzi / fenmu))
+        except RuntimeWarning:
+            print fenmu, fenzi
+            input()
+
+    return -sum_1 / m
+
+def function_tidu(feature, word, shop, sita, feature_num, a):
     # m组数据
     m = len(feature.keys())
     # n组类别
@@ -170,14 +214,26 @@ def function_tidu(feature, word, shop, sita, feature_num):
     # 计算梯度
     for i in xrange(m):
         tmp_shopid = feature[i]['label']
-        fenzi = sigmod(sita[tmp_shopid], word,feature[i], feature_num)
+        # fenzi = sigmod(sita[tmp_shopid], word,feature[i], feature_num)
         fenmu = 0.0
         if tmp_shopid not in shop:
             print tmp_shopid, shop
             input()
+        # for shopid in shop:
+        #     fenmu += sigmod(sita[shopid], word, feature[i], feature_num)
+        W = {}
+        W_m = 0.0
         for shopid in shop:
-            fenmu += sigmod(sita[shopid], word, feature[i], feature_num)
-
+            W[shopid] = sigmod(sita[shopid], word, feature[i], feature_num)
+            if W[shopid] > W_m:
+                W_m = W[shopid]
+        try:
+            fenzi = np.exp(W[tmp_shopid] - W_m)
+            for shopid in shop:
+                fenmu += np.exp(W[shopid] - W_m)
+        except RuntimeWarning:
+            print "1111111",W[tmp_shopid], W_m
+            input()
         # print fenzi, fenmu, (1-fenzi/fenmu)
         if fenmu != fenmu or abs(fenmu - 0.0) < 0.0000000000000001:
             fenzi = 0.0
@@ -194,7 +250,7 @@ def function_tidu(feature, word, shop, sita, feature_num):
         for j in xrange(feature_num+1):
             sum_1[i][j] = - sum_1[i][j] / m
 
-    a = 1
+    # a = 0.01
 
     for i in sita:
         for j in xrange(feature_num+1):
@@ -215,15 +271,24 @@ def softmax(train_feature, wordic, shopdic):
         for shopid in shopdic[mallid]:
             sita[shopid] = [0.00000001 for i in xrange(feature_num+1)]
         # 参数迭代
-        for i in xrange(10000):
-            sita_tmp = function_tidu(train_feature[mallid], wordic[mallid], shopdic[mallid],sita, feature_num)
+        print getloss(train_feature[mallid], wordic[mallid], shopdic[mallid],sita, feature_num)
+        a = 0.01
+        for i in xrange(1000):
+            sita_tmp = function_tidu(train_feature[mallid], wordic[mallid], shopdic[mallid],sita, feature_num, a)
             sita = sita_tmp
+            if i% 200 == 0:
+                a = a/10
+                print "diedai", i,getloss(train_feature[mallid], wordic[mallid], shopdic[mallid],sita, feature_num)
 
         # 最优化计算
         test = {'b_15322575': -69.0, 'b_26536694': -70.0, 'b_40839621': -50.0, 'b_15340607': -73.0, 'b_49978742': -58.0, 'label': 's_2887645', 'b_38348513': -68.0, 'b_50347535': -74.0, 'b_26487153': -68.0, 'b_39847233': -65.0, 'b_39423573': -51.0}
         result = {}
         m = 0.0
         label = ""
+        os = open("sita1_tmp.pkl","wb")
+        import pickle
+        pickle.dump(sita, os)
+        os.close()
         for shopid in shopdic[mallid]:
             result[shopid] = sigmod(sita[shopid], wordic[mallid], test,feature_num)
             if result[shopid] > m:
@@ -233,7 +298,23 @@ def softmax(train_feature, wordic, shopdic):
         input()
 
 # wifi = sumdic(datatrain)
-train_feature, wordic, shopdic = featrue_processing(datatrain, len(datatrain.keys()))
+# train_feature, wordic, shopdic = featrue_processing(datatrain, len(datatrain.keys()))
+# store = {}
+# store["train_feature"] = train_feature
+# store["wordic"] = wordic
+# store["shopdic"] = shopdic
+# os = open("data.pkl", "wb")
+# import pickle
+# pickle.dump(store, os)
+# os.close()
+
+os = open("data.pkl", "rb")
+import pickle
+store = pickle.load(os)
+os.close()
+train_feature = store["train_feature"]
+wordic = store["wordic"]
+shopdic = store["shopdic"]
 # print train_feature
 softmax(train_feature,wordic,shopdic)
 # del datatrain
